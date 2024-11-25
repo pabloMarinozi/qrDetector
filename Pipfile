@@ -4,11 +4,12 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-opencv-python = "*"
 pyzbar = "*"
 click = "*"
 pandas = "*"
 matplotlib = "*"
+numpy = "*"
+opencv-python = "*"
 
 [dev-packages]
 
