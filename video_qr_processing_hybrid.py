@@ -67,16 +67,23 @@ def procesar_frame_range(video_path: str, log_path: str, start_frame: int, end_f
         list: Lista de diccionarios con información sobre los códigos QR detectados.
     """
     datos = []
-    os.makedirs(f'{output}/frames/', exist_ok=True)
-    cap = cv2.VideoCapture(video_path)
-    cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-    
-    frame_num = start_frame
+    os.makedirs(f'{output}/qr_frames/', exist_ok=True)
+    cap = cv2.VideoCapture(video_path)    
+    frame_num = 0
 
     while frame_num < end_frame and cap.isOpened():
+
         ret, frame = cap.read()
+
+        if frame_num < start_frame:
+            frame_num += 1
+            continue
+            
         if not ret:
-            break
+            if not ret:
+                print(f"Error al leer el frame {frame_num}.")
+                frame_num += 1
+                continue
           
         try:
             # Dividir el frame en parches más pequeños
@@ -145,7 +152,7 @@ def procesar_frame_range(video_path: str, log_path: str, start_frame: int, end_f
                 log_file.write(f'Error en el frame {frame_num}: {str(e)}\n')
 
         # Guardar el frame completo con los puntos dibujados si ha sido modificado
-        cv2.imwrite(f'{output}/frames/frame_completo_{frame_num}.png', frame)
+        cv2.imwrite(f'{output}/qr_frames/frame_completo_{frame_num}.png', frame)
 
         frame_num += 1
 
@@ -175,8 +182,13 @@ def procesar_video_parallel(video_path: str, log_path: str, output_path: str, nu
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     cap.release()
 
-    frame_ranges = [(i * (total_frames // num_processes), (i + 1) * (total_frames // num_processes)) for i in range(num_processes)]
+    frame_ranges = [(i * (total_frames // num_processes), (i + 1) * (total_frames // num_processes)) for i in range(num_processes)]    
     frame_ranges[-1] = (frame_ranges[-1][0], total_frames)  # Asegurarse de que el último proceso llegue hasta el final
+
+    # # Imprimir los rangos generados
+    # print("Rangos de frames asignados a los procesos:")
+    # for i, (start, end) in enumerate(frame_ranges):
+    #     print(f"Proceso {i}: Frames {start} a {end - 1}")
 
     # Mostrar mensaje inicial
     print(f"Procesando video con {num_processes} núcleos...")

@@ -16,7 +16,8 @@ from reporting import generar_informe, generar_grafico_distribucion, generar_gra
 @click.option('--output-video', type=str, default="output_video.mp4", help='Ruta del archivo de video de salida con los recuadros de los QR detectados (si se genera)')
 @click.option('--factor-lentitud', type=float, default=0.5, help='Factor para ralentizar el video (menor a 1 lo hará más lento, mayor a 1 lo hará más rápido)')
 @click.option('--modo', type=click.Choice(['pyzbar', 'hibrido'], case_sensitive=False), default='hibrido', help='Modo de procesamiento: pyzbar o híbrido')
-def main(output_path:str, video_path: str, salida_csv: str, log_path: str, num_processes: int, generar_video: bool, output_video: str, factor_lentitud: float, modo: str):
+@click.option('--prefijo', type=str, default="", help='Prefijo para los nombres de los frames del video en el csv')
+def main(output_path:str, video_path: str, salida_csv: str, log_path: str, num_processes: int, generar_video: bool, output_video: str, factor_lentitud: float, modo: str, prefijo: str):
 
     os.makedirs(output_path, exist_ok=True)
 
@@ -28,12 +29,12 @@ def main(output_path:str, video_path: str, salida_csv: str, log_path: str, num_p
     else:
         raise ValueError("Modo de procesamiento no válido. Use 'pyzbar' o 'hibrido'.")
 
-    generar_csv(datos, output_path+salida_csv)
+    generar_csv(datos, prefijo, f"{output_path}/{salida_csv}")
 
     # Generar informe y gráficos
     generar_informe(datos)
-    generar_grafico_temporal(datos)
-    generar_grafico_distribucion(datos)
+    generar_grafico_temporal(datos, f"{output_path}/temporal_qr.png")
+    generar_grafico_distribucion(datos, f"{output_path}/distribucion_qr.png")
 
     # Si se indica, generar el video con los recuadros de los códigos QR detectados
     if generar_video:

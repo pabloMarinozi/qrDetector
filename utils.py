@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import time
 import cv2
+import os
 
 def mide_tiempo(funcion):
     """
@@ -20,18 +21,56 @@ def mide_tiempo(funcion):
         return c
     return funcion_medida
 
-def generar_csv(datos, salida_csv: str):
+def extraer_frames(video_path: str, output_dir: str):
+    """
+    Extrae todos los frames de un video y los guarda como imágenes en disco.
+
+    Args:
+        video_path (str): Ruta al archivo de video.
+        output_dir (str): Directorio donde se guardarán los frames.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    cap = cv2.VideoCapture(video_path)
+    frame_num = 0
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frame_path = os.path.join(output_dir, f"frame_{frame_num:04d}.png")
+        cv2.imwrite(frame_path, frame)
+        frame_num += 1
+
+    cap.release()
+    print(f"Se han guardado {frame_num} frames en {output_dir}")
+
+
+def generar_csv(datos, prefijo, salida_csv: str):
     """
     Genera un archivo CSV con los datos de los códigos QR detectados.
 
     Args:
         datos (list): Lista de diccionarios con información sobre los códigos QR detectados.
+        prefijo (str): prefijo para formar el nombre de cada frame
         salida_csv (str): Ruta del archivo CSV de salida.
     """
-    df = pd.DataFrame(datos)
-    df = df.sort_values(by='data')
+    rows = []
+    for row in datos:
+        for i in range(1, 5):  # Genera x1,y1 hasta x4,y4
+            rows.append({
+                "image_name": f"{prefijo}_{row['frame']}.png",
+                "x": row[f"x{i}"],
+                "y": row[f"y{i}"],
+                "r": 0,
+                "detection": row["detected_by"],
+                "track_id": 1000 + int(row["data"]) * 4 + i -1,
+                "label": "qr",
+                "data": int(row["data"]),
+                "esquina": i
+            })
+    df = pd.DataFrame(rows)
+    df = df.sort_values(by=['data', 'image_name', 'esquina'])
     df.to_csv(salida_csv, index=False)
-    print(f'Datos guardados en {salida_csv}')
 
 def generar_video_con_qr(video_path: str, datos: list, output_video_path: str, factor_lentitud: float = 0.5):
     """
